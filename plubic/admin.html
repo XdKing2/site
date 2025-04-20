@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard - Agroglobal</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="main-header">
+    <div class="logo">Agroglobal Admin</div>
+    <a href="/" class="mode-toggle">Back to Site</a>
+  </header>
+
+  <div class="admin-container">
+    <h2>Admin Dashboard</h2>
+    <form id="addProductForm">
+      <input type="text" name="name" placeholder="Product name" required />
+      <input type="text" name="price" placeholder="Price" required />
+      <input type="text" name="category" placeholder="Category" required />
+      <input type="text" name="image" placeholder="Image URL" required />
+      <button type="submit">Add Product</button>
+    </form>
+    <div id="adminProductList"></div>
+  </div>
+  <script>
+    document.getElementById("addProductForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) location.reload();
+    });
+  </script>
+</body>
+</html>

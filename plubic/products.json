@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "name": "Fresh Maize",
+    "price": 500,
+    "category": "Grains",
+    "image": "https://via.placeholder.com/150"
+  },
+  {
+    "id": 2,
+    "name": "Cassava",
+    "price": 300,
+    "category": "Roots",
+    "image": "https://via.placeholder.com/150"
+  }
+]
