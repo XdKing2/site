@@ -1,71 +1,57 @@
 const express = require('express');
-const fs = require('fs');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
+const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const USERS_FILE = './users.json';
-
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(session({ secret: 'agro_secret_key', resave: false, saveUninitialized: true }));
-
-// Serve static files
 app.use(express.static('public'));
 
+app.use(session({
+  secret: 'agroglobal_secret_key',
+  resave: false,
+  saveUninitialized: true,
+}));
+
+const USERS_FILE = './users.json';
+const PRODUCTS_FILE = './public/products.json';
+
 function loadUsers() {
-  if (!fs.existsSync(USERS_FILE)) return [];
-  const data = fs.readFileSync(USERS_FILE);
-  return JSON.parse(data);
+  return JSON.parse(fs.readFileSync(USERS_FILE));
 }
 
 function saveUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
-app.post('/signup', async (req, res) => {
-  const { email, password, name } = req.body;
+app.post('/api/signup', async (req, res) => {
+  const { name, email, password } = req.body;
   const users = loadUsers();
-
   if (users.find(u => u.email === email)) {
-    return res.status(400).send('User already exists');
+    return res.status(400).send('Email already exists');
   }
-
   const hashedPassword = await bcrypt.hash(password, 10);
-  users.push({ email, name, password: hashedPassword, isAdmin: false });
+  users.push({ name, email, password: hashedPassword, isAdmin: email === "admin@agro.com" });
   saveUsers(users);
-  res.redirect('/login.html');
+  res.status(201).send('User created');
 });
 
-app.post('/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   const users = loadUsers();
   const user = users.find(u => u.email === email);
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return res.status(401).send('Invalid credentials');
   }
-
-  req.session.user = { email: user.email, name: user.name, isAdmin: user.isAdmin };
-  res.redirect(user.isAdmin ? '/admin.html' : '/index.html');
+  req.session.user = { email: user.email, isAdmin: user.isAdmin };
+  res.send('Login successful');
 });
 
 app.get('/logout', (req, res) => {
   req.session.destroy();
-  res.redirect('/index.html');
+  res.redirect('/');
 });
-
-app.get('/admin.html', (req, res, next) => {
-  if (!req.session.user || !req.session.user.isAdmin) {
-    return res.status(403).send('Access Denied');
-  }
-  next();
-}, express.static(path.join(__dirname, 'public', 'admin.html')));
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-const PRODUCTS_FILE = './public/products.json';
 
 app.get('/api/products', (req, res) => {
   const data = fs.readFileSync(PRODUCTS_FILE);
@@ -82,3 +68,11 @@ app.post('/api/products', (req, res) => {
   fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2));
   res.status(201).send('Added');
 });
+
+// Fallback to index.html for unknown routes (SPA handling)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
